@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Recallio",
-    "slug": "Recallio",
+    "slug": "recallio",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -22,9 +22,8 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [],
-      "blockedPermissions": [
-        "android.permission.INTERNET"
-      ]
+      "blockedPermissions": ["android.permission.INTERNET"],
+      "package": "com.brecallio.recallio"
     },
     "web": {
       "output": "static",
@@ -48,6 +47,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "16ed33e2-5c5a-41b7-9031-5a6cfdd3ed58"
+      }
+    },
+    "owner": "jackstar2026"
   }
 }
