@@ -6,6 +6,25 @@ import { EmptyState } from '@/components/EmptyState';
 import { Flashcard } from '@/components/Flashcard';
 import { QuizControls } from '@/components/QuizControls';
 import { useDecks } from '@/context/DeckContext';
+import { Card } from '@/types/deck';
+
+const permissionFreePracticeCards: Card[] = [
+  {
+    id: 'sample-1',
+    question: 'What is Recallio?',
+    answer: 'A flashcard app to practice and remember information.',
+  },
+  {
+    id: 'sample-2',
+    question: 'Do I need camera or location access to use this sample quiz?',
+    answer: 'No. This practice mode works entirely offline with no permissions required.',
+  },
+  {
+    id: 'sample-3',
+    question: 'What is one effective memory strategy?',
+    answer: 'Use active recall: answer a question before revealing the answer.',
+  },
+];
 
 function shuffleArray<T>(input: T[]): T[] {
   const shuffled = [...input];
@@ -21,6 +40,7 @@ export default function QuizScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getDeckById } = useDecks();
   const deck = getDeckById(id);
+  const isPermissionFreeMode = id === 'permission-free';
   const isDark = useColorScheme() === 'dark';
 
   const [shuffleEnabled, setShuffleEnabled] = useState(false);
@@ -29,12 +49,16 @@ export default function QuizScreen() {
   const [isFlipped, setIsFlipped] = useState(false);
 
   const cards = useMemo(() => {
+    if (isPermissionFreeMode) {
+      return shuffleEnabled ? shuffleArray(permissionFreePracticeCards) : permissionFreePracticeCards;
+    }
+
     if (!deck) {
       return [];
     }
 
     return shuffleEnabled ? shuffleArray(deck.cards) : deck.cards;
-  }, [deck, shuffleEnabled]);
+  }, [deck, isPermissionFreeMode, shuffleEnabled]);
 
   const currentCard = cards[cardIndex];
   const isFinished = cardIndex >= cards.length && cards.length > 0;
@@ -54,7 +78,7 @@ export default function QuizScreen() {
     setIsFlipped(false);
   }
 
-  if (!deck || deck.cards.length === 0) {
+  if ((!deck || deck.cards.length === 0) && !isPermissionFreeMode) {
     return (
       <View style={[styles.screen, isDark ? styles.darkBackground : styles.lightBackground]}>
         <EmptyState title="Not enough cards" description="Add cards to this deck before taking a quiz." />
@@ -68,7 +92,9 @@ export default function QuizScreen() {
     return (
       <View style={[styles.screen, isDark ? styles.darkBackground : styles.lightBackground]}>
         <View style={[styles.scoreCard, isDark ? styles.cardDark : styles.cardLight]}>
-          <Text style={[styles.scoreTitle, isDark ? styles.textLight : styles.textDark]}>Quiz complete</Text>
+          <Text style={[styles.scoreTitle, isDark ? styles.textLight : styles.textDark]}>
+            {isPermissionFreeMode ? 'Practice complete' : 'Quiz complete'}
+          </Text>
           <Text style={[styles.scoreValue, isDark ? styles.textLight : styles.textDark]}>
             {correctCount}/{cards.length} correct
           </Text>

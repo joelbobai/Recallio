@@ -113,6 +113,11 @@ export default function DeckListScreen() {
               disabled={readyDecks.length === 0}>
               <Text style={styles.secondaryButtonText}>Random Quiz</Text>
             </Pressable>
+            <Link href={{ pathname: '/quiz/[id]', params: { id: 'permission-free' } }} asChild>
+              <Pressable style={styles.secondaryButton}>
+                <Text style={styles.secondaryButtonText}>Permission-Free Practice</Text>
+              </Pressable>
+            </Link>
           </View>
         </View>
 
