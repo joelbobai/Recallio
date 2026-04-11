@@ -32,8 +32,15 @@ function shuffleArray<T>(input: T[]): T[] {
     const randomIndex = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[i]];
   }
-
   return shuffled;
+}
+
+function getMotivationalMessage(percentage: number): string {
+  if (percentage === 100) return 'Perfect score! Outstanding work.';
+  if (percentage >= 80) return 'Great job! You know this material well.';
+  if (percentage >= 60) return 'Good effort. A bit more practice will get you there.';
+  if (percentage >= 40) return 'Keep at it — review the cards and try again.';
+  return "Don't give up. Every review makes the knowledge stick.";
 }
 
 export default function QuizScreen() {
@@ -53,23 +60,19 @@ export default function QuizScreen() {
       return shuffleEnabled ? shuffleArray(permissionFreePracticeCards) : permissionFreePracticeCards;
     }
 
-    if (!deck) {
-      return [];
-    }
+    if (!deck) return [];
 
     return shuffleEnabled ? shuffleArray(deck.cards) : deck.cards;
   }, [deck, isPermissionFreeMode, shuffleEnabled]);
 
   const currentCard = cards[cardIndex];
   const isFinished = cardIndex >= cards.length && cards.length > 0;
+  const progressPercent = cards.length > 0 ? (cardIndex / cards.length) * 100 : 0;
 
   function onAnswer(isCorrect: boolean) {
-    if (isCorrect) {
-      setCorrectCount((value) => value + 1);
-    }
-
+    if (isCorrect) setCorrectCount((v) => v + 1);
     setIsFlipped(false);
-    setCardIndex((value) => value + 1);
+    setCardIndex((v) => v + 1);
   }
 
   function restartQuiz() {
@@ -98,7 +101,10 @@ export default function QuizScreen() {
           <Text style={[styles.scoreValue, isDark ? styles.textLight : styles.textDark]}>
             {correctCount}/{cards.length} correct
           </Text>
-          <Text style={[styles.scoreSubtitle, isDark ? styles.mutedDark : styles.mutedLight]}>{percentage}% score</Text>
+          <Text style={[styles.scorePercent, isDark ? styles.textLight : styles.textDark]}>{percentage}%</Text>
+          <Text style={[styles.scoreMessage, isDark ? styles.mutedDark : styles.mutedLight]}>
+            {getMotivationalMessage(percentage)}
+          </Text>
         </View>
         <Pressable style={styles.restartButton} onPress={restartQuiz}>
           <Text style={styles.restartText}>Restart Quiz</Text>
@@ -109,13 +115,26 @@ export default function QuizScreen() {
 
   return (
     <View style={[styles.screen, isDark ? styles.darkBackground : styles.lightBackground]}>
+      {/* Progress bar */}
+      <View style={[styles.progressTrack, isDark ? styles.progressTrackDark : styles.progressTrackLight]}>
+        <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+      </View>
+
       <View style={styles.quizHeader}>
         <Text style={[styles.progressText, isDark ? styles.mutedDark : styles.mutedLight]}>
           Card {cardIndex + 1} / {cards.length}
         </Text>
         <View style={styles.shuffleRow}>
           <Text style={[styles.shuffleText, isDark ? styles.textLight : styles.textDark]}>Shuffle</Text>
-          <Switch value={shuffleEnabled} onValueChange={setShuffleEnabled} />
+          <Switch
+            value={shuffleEnabled}
+            onValueChange={(value) => {
+              setShuffleEnabled(value);
+              setCardIndex(0);
+              setCorrectCount(0);
+              setIsFlipped(false);
+            }}
+          />
         </View>
       </View>
 
@@ -123,10 +142,21 @@ export default function QuizScreen() {
         question={currentCard.question}
         answer={currentCard.answer}
         isFlipped={isFlipped}
-        onFlip={() => setIsFlipped((value) => !value)}
+        onFlip={() => setIsFlipped((v) => !v)}
       />
 
-      <QuizControls onCorrect={() => onAnswer(true)} onIncorrect={() => onAnswer(false)} />
+      {/* Nudge shown only while card is still unflipped */}
+      {!isFlipped && (
+        <Text style={[styles.flipHint, isDark ? styles.mutedDark : styles.mutedLight]}>
+          Tap the card to reveal the answer, then mark yourself.
+        </Text>
+      )}
+
+      <QuizControls
+        onCorrect={() => onAnswer(true)}
+        onIncorrect={() => onAnswer(false)}
+        isFlipped={isFlipped}
+      />
     </View>
   );
 }
@@ -135,10 +165,24 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     padding: 18,
-    gap: 18,
+    gap: 16,
   },
   lightBackground: { backgroundColor: '#F0F2F5' },
   darkBackground: { backgroundColor: '#101115' },
+
+  progressTrack: {
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressTrackLight: { backgroundColor: '#D4DBE5' },
+  progressTrackDark: { backgroundColor: '#2A2D38' },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#2F80ED',
+    borderRadius: 2,
+  },
+
   quizHeader: {
     gap: 8,
   },
@@ -155,9 +199,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+
+  flipHint: {
+    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+
   scoreCard: {
     borderRadius: 18,
-    padding: 24,
+    padding: 28,
     alignItems: 'center',
     marginTop: 20,
     gap: 8,
@@ -165,21 +216,32 @@ const styles = StyleSheet.create({
   cardLight: { backgroundColor: '#FFFFFF' },
   cardDark: { backgroundColor: '#1E1F25' },
   scoreTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
   scoreValue: {
-    fontSize: 28,
+    fontSize: 36,
     fontWeight: '800',
+    marginTop: 4,
   },
-  scoreSubtitle: {
-    fontSize: 16,
+  scorePercent: {
+    fontSize: 20,
+    fontWeight: '700',
+    opacity: 0.7,
+  },
+  scoreMessage: {
+    fontSize: 15,
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 22,
   },
   restartButton: {
     backgroundColor: '#2F80ED',
     borderRadius: 12,
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
   },
   restartText: {
     color: '#FFFFFF',

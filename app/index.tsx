@@ -16,7 +16,7 @@ import { DeckItem } from '@/components/DeckItem';
 import { EmptyState } from '@/components/EmptyState';
 import { useDecks } from '@/context/DeckContext';
 
-type SortMode = 'newest' | 'oldest' | 'title' | 'cards';
+type SortMode = 'newest' | 'title' | 'cards';
 type FilterMode = 'all' | 'ready' | 'empty';
 
 export default function DeckListScreen() {
@@ -34,13 +34,13 @@ export default function DeckListScreen() {
     const totalCards = decks.reduce((sum, deck) => sum + deck.cards.length, 0);
     const averageCards = totalDecks === 0 ? 0 : Number((totalCards / totalDecks).toFixed(1));
 
-    const largestDeck = decks.reduce((largest, deck) => {
-      if (!largest || deck.cards.length > largest.cards.length) {
-        return deck;
-      }
-
-      return largest;
-    }, decks[0]);
+    // Only consider decks that actually have cards so the tip is meaningful.
+    const largestDeck = decks
+      .filter((d) => d.cards.length > 0)
+      .reduce<(typeof decks)[0] | undefined>((largest, deck) => {
+        if (!largest || deck.cards.length > largest.cards.length) return deck;
+        return largest;
+      }, undefined);
 
     return {
       totalDecks,
@@ -69,9 +69,8 @@ export default function DeckListScreen() {
       sorted.sort((first, second) => first.title.localeCompare(second.title));
     } else if (sortMode === 'cards') {
       sorted.sort((first, second) => second.cards.length - first.cards.length);
-    } else if (sortMode === 'oldest') {
-      sorted.sort((first, second) => Date.parse(first.createdAt) - Date.parse(second.createdAt));
     } else {
+      // 'newest' — default
       sorted.sort((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt));
     }
 
@@ -187,7 +186,7 @@ export default function DeckListScreen() {
 
         {stats.largestDeck ? (
           <Pressable
-            onPress={() => router.push({ pathname: '/deck/[id]', params: { id: stats.largestDeck?.id } })}
+            onPress={() => router.push({ pathname: '/deck/[id]', params: { id: stats.largestDeck!.id } })}
             style={[styles.tipCard, isDark ? styles.panelDark : styles.panelLight]}>
             <Text style={[styles.tipTitle, isDark ? styles.textLight : styles.textDark]}>Largest deck</Text>
             <Text style={[styles.tipSubtitle, isDark ? styles.mutedDark : styles.mutedLight]}>
@@ -377,4 +376,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginBottom: 4,
   },
+  mutedLight: { color: '#5C6675' },
+  mutedDark: { color: '#ACB5C4' },
 });

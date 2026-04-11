@@ -14,6 +14,8 @@ type DeckContextValue = {
   isLoading: boolean;
   addDeck: (title: string) => Promise<Deck>;
   addCard: (input: AddCardInput) => Promise<Deck | undefined>;
+  updateDeck: (deckId: string, title: string) => Promise<void>;
+  updateCard: (deckId: string, cardId: string, question: string, answer: string) => Promise<void>;
   deleteDeck: (deckId: string) => Promise<void>;
   deleteCard: (deckId: string, cardId: string) => Promise<void>;
   getDeckById: (deckId: string) => Deck | undefined;
@@ -31,17 +33,25 @@ export function DeckProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     async function hydrateDecks() {
-      const storedDecks = await loadDecks();
-      setDecks(storedDecks);
-      setIsLoading(false);
+      try {
+        const storedDecks = await loadDecks();
+        setDecks(storedDecks);
+      } finally {
+        setIsLoading(false);
+      }
     }
 
     hydrateDecks();
   }, []);
 
   async function persistDecks(nextDecks: Deck[]) {
+    const previousDecks = decks;
     setDecks(nextDecks);
-    await saveDecks(nextDecks);
+    try {
+      await saveDecks(nextDecks);
+    } catch {
+      setDecks(previousDecks);
+    }
   }
 
   async function addDeck(title: string): Promise<Deck> {
@@ -82,6 +92,22 @@ export function DeckProvider({ children }: PropsWithChildren) {
     return updatedDeck;
   }
 
+  async function updateDeck(deckId: string, title: string): Promise<void> {
+    const nextDecks = decks.map((deck) => (deck.id === deckId ? { ...deck, title } : deck));
+    await persistDecks(nextDecks);
+  }
+
+  async function updateCard(deckId: string, cardId: string, question: string, answer: string): Promise<void> {
+    const nextDecks = decks.map((deck) => {
+      if (deck.id !== deckId) return deck;
+      return {
+        ...deck,
+        cards: deck.cards.map((card) => (card.id === cardId ? { ...card, question, answer } : card)),
+      };
+    });
+    await persistDecks(nextDecks);
+  }
+
   async function deleteDeck(deckId: string): Promise<void> {
     const nextDecks = decks.filter((deck) => deck.id !== deckId);
     await persistDecks(nextDecks);
@@ -107,7 +133,7 @@ export function DeckProvider({ children }: PropsWithChildren) {
   }
 
   const value = useMemo(
-    () => ({ decks, isLoading, addDeck, addCard, deleteDeck, deleteCard, getDeckById }),
+    () => ({ decks, isLoading, addDeck, addCard, updateDeck, updateCard, deleteDeck, deleteCard, getDeckById }),
     [decks, isLoading],
   );
 
